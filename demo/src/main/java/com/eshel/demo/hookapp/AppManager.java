@@ -17,111 +17,44 @@ public class AppManager {
 	private static final int onConfigurationChanged = 3;
 	private static final int onTrimMemory = 4;
 	private static final int onLowMemory = 5;
-	private static List<ApplicationCache> apps = new ArrayList<>();
+	private static List<Application> apps = new ArrayList<>();
+	static Application mainApp;
+	static void init(Application application){
+		mainApp = application;
+	}
 	static void add(Application app){
-		apps.add(new ApplicationCache(app));
+		ReflectUtil.setMember(Application.class,app,"mComponentCallbacks",new HookArrayList(mainApp));
+		ReflectUtil.setMember(Application.class,app,"mActivityLifecycleCallbacks",new HookArrayList(mainApp));
+		ReflectUtil.setMember(Application.class,app,"mAssistCallbacks",new HookArrayList(mainApp));
+		apps.add(app);
 	}
-	public static void attachBaseContext(final Application application){
-		hookActivityLifeListener(application);
-		dispatchApplicationCache(attachBaseContext,application,null,0);
-	}
-	private static void hookActivityLifeListener(Application application) {
-		application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
-			@Override
-			public void onActivityCreated(final Activity activity, final Bundle savedInstanceState) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_CREATED,activity,savedInstanceState);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivityStarted(final Activity activity) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_STARTED,activity,null);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivityResumed(final Activity activity) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_RESUMED,activity,null);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivityPaused(final Activity activity) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_PAUSED,activity,null);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivityStopped(final Activity activity) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_STOPPED,activity,null);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivitySaveInstanceState(final Activity activity, final Bundle outState) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_SAVEINSTANCESTATE,activity,outState);
-					}
-				}.start();
-			}
-
-			@Override
-			public void onActivityDestroyed(final Activity activity) {
-				new Runnable(){
-					@Override
-					void run(ApplicationCache app) {
-						app.dispatchActivityLifecycleCallback(ApplicationCache.ON_ACTIVITY_DESTROYED,activity,null);
-					}
-				}.start();
-			}
-		});
+	public static void attachBaseContext(){
+		dispatchApplication(attachBaseContext,mainApp,null,0);
 	}
 
 	public static void onCreate(){
-		dispatchApplicationCache(onCreate,null,null,0);
+		dispatchApplication(onCreate,null,null,0);
 	}
 	public static void onTerminate(){
-		dispatchApplicationCache(onTerminate,null,null,0);
+		dispatchApplication(onTerminate,null,null,0);
 	}
 
 	public static void onConfigurationChanged(Configuration newConfig) {
-		dispatchApplicationCache(onConfigurationChanged,null,newConfig,0);
+		dispatchApplication(onConfigurationChanged,null,newConfig,0);
 	}
 
 	public static void onTrimMemory(int level) {
-		dispatchApplicationCache(onTrimMemory,null,null,level);
+		dispatchApplication(onTrimMemory,null,null,level);
 	}
 
 	public static void onLowMemory() {
-		dispatchApplicationCache(onTrimMemory,null,null,0);
+		dispatchApplication(onTrimMemory,null,null,0);
 	}
 
 	static abstract class Runnable{
-		abstract void run(ApplicationCache app);
+		abstract void run(Application app);
 		public final void start(){
-			for (ApplicationCache app : apps) {
+			for (Application app : apps) {
 				try {
 					run(app);
 				}catch (Exception e){
@@ -132,29 +65,29 @@ public class AppManager {
 			}
 		}
 	}
-	private static void dispatchApplicationCache(int type,Application app1,Configuration newConfig,int level){
+	private static void dispatchApplication(int type,Application app1,Configuration newConfig,int level){
 		if(apps != null)
-			for (ApplicationCache app : apps) {
+			for (Application app : apps) {
 				try {
 				    switch (type){
 						case attachBaseContext:
-							ReflectUtil.invoke(android.content.ContextWrapper.class,app.app,"attachBaseContext",
+							ReflectUtil.invoke(android.content.ContextWrapper.class,app,"attachBaseContext",
 									new Class[]{Context.class},new Object[]{app1.getBaseContext()});
 							break;
 						case onCreate:
-							app.app.onCreate();
+							app.onCreate();
 							break;
 						case onTerminate:
-							app.app.onTerminate();
+							app.onTerminate();
 							break;
 						case onConfigurationChanged:
-							app.app.onConfigurationChanged(newConfig);
+							app.onConfigurationChanged(newConfig);
 							break;
 						case onTrimMemory:
-							app.app.onTrimMemory(level);
+							app.onTrimMemory(level);
 							break;
 						case onLowMemory:
-							app.app.onLowMemory();
+							app.onLowMemory();
 							break;
 					}
 				}catch (Exception e){

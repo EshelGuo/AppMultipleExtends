@@ -21,6 +21,17 @@ public class ReflectUtil {
 		}
 		return null;
 	}
+	static void setMember(Class clazz, Object target, String memberName,Object newValue){
+		try {
+			Field field = clazz.getDeclaredField(memberName);
+			if(!Modifier.isPublic(field.getModifiers())){
+				field.setAccessible(true);
+			}
+			field.set(target,newValue);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	static Object invoke(Class clazz, Object target, String methodName, Class[] parameterTypes, Object[] parameters){
 		try {
 			Method method = clazz.getDeclaredMethod(methodName,parameterTypes);

@@ -14,8 +14,9 @@ public abstract class HookApplication extends Application{
 	@Override
 	protected void attachBaseContext(Context base) {
 		super.attachBaseContext(base);
+		AppManager.init(this);
 		addApplications(new AppConfig());
-		AppManager.attachBaseContext(this);
+		AppManager.attachBaseContext();
 	}
 
 	@Override
